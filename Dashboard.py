@@ -4,20 +4,17 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 
-# Load preprocessed dataframe (must be in same folder as this script)
 df = pd.read_csv('pivoted.csv', parse_dates=[
     'Submission Submitted At (Assignment Submissions1)_boy',
     'Submission Submitted At (Assignment Submissions1)_moy',
     'Submission Submitted At (Assignment Submissions1)_eoy'
 ])
 
-# Sidebar filters
 states = ['All'] + sorted(df['State Name (District School Students1)'].dropna().unique())
 districts = ['All'] + sorted(df['District Name (District School Students1)'].dropna().unique())
 grades = ['All'] + sorted(df['grade_num'].dropna().unique())
 
 st.title("Benchmark Growth Dashboard")
-
 st.sidebar.header("Filter")
 selected_state = st.sidebar.selectbox("State", options=states)
 selected_district = st.sidebar.selectbox("District", options=districts)
@@ -35,24 +32,21 @@ if filtered.empty:
     st.warning("No data available for this selection.")
     st.stop()
 
-
-#Interactive plots
-# Let user select which score to visualize
+# Interactive Trend Plot
 score_option = st.selectbox(
     "Select Score for Trend",
     options=["SpeakAverage", "WriteAverage"],
     index=0
 )
 
-# Prepare means for BOY, MOY, EOY
 means = [
-    filtered[f"{score_option}_boy"].mean(),
-    filtered[f"{score_option}_moy"].mean(),
-    filtered[f"{score_option}_eoy"].mean()
+    filtered.get(f"{score_option}_boy", pd.Series(dtype='float')).mean(),
+    filtered.get(f"{score_option}_moy", pd.Series(dtype='float')).mean(),
+    filtered.get(f"{score_option}_eoy", pd.Series(dtype='float')).mean()
 ]
 benchmarks = ["BOY", "MOY", "EOY"]
 
-# Create Plotly figure
+st.markdown(f"### Mean {score_option} Trend")
 fig = go.Figure()
 fig.add_trace(go.Scatter(
     x=benchmarks, y=means,
@@ -60,15 +54,13 @@ fig.add_trace(go.Scatter(
     name=f"Mean {score_option}"
 ))
 fig.update_layout(
-    title=f"Mean {score_option} Trend",
     xaxis_title="Benchmark",
     yaxis_title=f"Mean {score_option}",
     hovermode='x unified'
 )
 st.plotly_chart(fig, use_container_width=True)
 
-#Grade interactive plots
-# Compute means by grade and benchmark
+# By Grade
 means_by_grade = (
     filtered.groupby('grade_num')[
         [f"{score_option}_boy", f"{score_option}_moy", f"{score_option}_eoy"]
@@ -77,7 +69,6 @@ means_by_grade = (
     .reset_index()
 )
 
-# Melt for Plotly
 means_by_grade_melted = means_by_grade.melt(
     id_vars='grade_num',
     value_vars=[f"{score_option}_boy", f"{score_option}_moy", f"{score_option}_eoy"],
@@ -86,6 +77,7 @@ means_by_grade_melted = means_by_grade.melt(
 )
 means_by_grade_melted['benchmark'] = means_by_grade_melted['benchmark'].str.extract(f"{score_option}_(.*)").iloc[:, 0].str.upper()
 
+st.markdown(f"### {score_option} Trend by Grade")
 fig = go.Figure()
 for grade, group in means_by_grade_melted.groupby('grade_num'):
     fig.add_trace(go.Scatter(
@@ -94,7 +86,6 @@ for grade, group in means_by_grade_melted.groupby('grade_num'):
         name=f'Grade {grade}'
     ))
 fig.update_layout(
-    title=f"{score_option} Trend by Grade",
     xaxis_title="Benchmark",
     yaxis_title=f"Mean {score_option}",
     legend_title="Grade",
@@ -102,8 +93,7 @@ fig.update_layout(
 )
 st.plotly_chart(fig, use_container_width=True)
 
-
-#Days between benchmarks
+# Days between benchmarks summary
 st.markdown("### Days Between Benchmarks - Summary")
 for col in ['days_boy_moy', 'days_moy_eoy', 'days_boy_eoy']:
     days = filtered[col].dropna()
@@ -116,7 +106,7 @@ for col in ['days_boy_moy', 'days_moy_eoy', 'days_boy_eoy']:
 
 st.markdown(f"### Students: {len(filtered)}")
 
-# Show aggregate statistics
+# Growth stats
 st.markdown("#### Growth Statistics")
 growth_cols = [
     'SpeakAverage_growth_BOY_MOY', 'SpeakAverage_growth_MOY_EOY', 'SpeakAverage_growth_BOY_EOY',
@@ -124,7 +114,7 @@ growth_cols = [
 ]
 st.dataframe(filtered[growth_cols].describe().T[['mean', 'std', 'min', 'max', 'count']])
 
-# Mean growth by grade
+# Growth by grade
 st.markdown("#### Mean Growth by Grade")
 st.dataframe(
     filtered.groupby('grade_num')[growth_cols].mean().reset_index()
