@@ -2,6 +2,7 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 
 # Load preprocessed dataframe (must be in same folder as this script)
 df = pd.read_csv('pivoted.csv', parse_dates=[
@@ -34,36 +35,75 @@ if filtered.empty:
     st.warning("No data available for this selection.")
     st.stop()
 
-# Mean SpeakAverage Trend
-st.markdown("### Mean SpeakAverage Trend")
-fig, ax = plt.subplots()
-ax.plot(['BOY', 'MOY', 'EOY'],
-        [
-            filtered["SpeakAverage_boy"].mean(),
-            filtered["SpeakAverage_moy"].mean(),
-            filtered["SpeakAverage_eoy"].mean()
-        ],
-        marker='o'
-)
-ax.set_ylabel("Mean SpeakAverage")
-ax.set_xlabel("Benchmark")
-st.pyplot(fig)
 
-# Mean WriteAverage Trend
-st.markdown("### Mean WriteAverage Trend")
-fig, ax = plt.subplots()
-ax.plot(['BOY', 'MOY', 'EOY'],
-        [
-            filtered["WriteAverage_boy"].mean(),
-            filtered["WriteAverage_moy"].mean(),
-            filtered["WriteAverage_eoy"].mean()
-        ],
-        marker='o'
+#Interactive plots
+# Let user select which score to visualize
+score_option = st.selectbox(
+    "Select Score for Trend",
+    options=["SpeakAverage", "WriteAverage"],
+    index=0
 )
-ax.set_ylabel("Mean WriteAverage")
-ax.set_xlabel("Benchmark")
-st.pyplot(fig)
 
+# Prepare means for BOY, MOY, EOY
+means = [
+    filtered[f"{score_option}_boy"].mean(),
+    filtered[f"{score_option}_moy"].mean(),
+    filtered[f"{score_option}_eoy"].mean()
+]
+benchmarks = ["BOY", "MOY", "EOY"]
+
+# Create Plotly figure
+fig = go.Figure()
+fig.add_trace(go.Scatter(
+    x=benchmarks, y=means,
+    mode='lines+markers',
+    name=f"Mean {score_option}"
+))
+fig.update_layout(
+    title=f"Mean {score_option} Trend",
+    xaxis_title="Benchmark",
+    yaxis_title=f"Mean {score_option}",
+    hovermode='x unified'
+)
+st.plotly_chart(fig, use_container_width=True)
+
+#Grade interactive plots
+# Compute means by grade and benchmark
+means_by_grade = (
+    filtered.groupby('grade_num')[
+        [f"{score_option}_boy", f"{score_option}_moy", f"{score_option}_eoy"]
+    ]
+    .mean()
+    .reset_index()
+)
+
+# Melt for Plotly
+means_by_grade_melted = means_by_grade.melt(
+    id_vars='grade_num',
+    value_vars=[f"{score_option}_boy", f"{score_option}_moy", f"{score_option}_eoy"],
+    var_name='benchmark',
+    value_name='mean_score'
+)
+means_by_grade_melted['benchmark'] = means_by_grade_melted['benchmark'].str.extract(f"{score_option}_(.*)").iloc[:, 0].str.upper()
+
+fig = go.Figure()
+for grade, group in means_by_grade_melted.groupby('grade_num'):
+    fig.add_trace(go.Scatter(
+        x=group['benchmark'], y=group['mean_score'],
+        mode='lines+markers',
+        name=f'Grade {grade}'
+    ))
+fig.update_layout(
+    title=f"{score_option} Trend by Grade",
+    xaxis_title="Benchmark",
+    yaxis_title=f"Mean {score_option}",
+    legend_title="Grade",
+    hovermode='x unified'
+)
+st.plotly_chart(fig, use_container_width=True)
+
+
+#Days between benchmarks
 st.markdown("### Days Between Benchmarks - Summary")
 for col in ['days_boy_moy', 'days_moy_eoy', 'days_boy_eoy']:
     days = filtered[col].dropna()
@@ -89,10 +129,6 @@ st.markdown("#### Mean Growth by Grade")
 st.dataframe(
     filtered.groupby('grade_num')[growth_cols].mean().reset_index()
 )
-
-# Histogram of days between BOY-MOY
-st.markdown("#### Days Between Benchmarks (BOY-MOY)")
-st.bar_chart(filtered['days_boy_moy'].dropna())
 
 # Student-level Data
 st.markdown("#### Student-level Data (first 100 rows)")
