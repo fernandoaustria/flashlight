@@ -1,12 +1,9 @@
 import streamlit as st
 import numpy as np
 import pandas as pd
-import seaborn as sns
 import matplotlib.pyplot as plt
 
-#Load preprocessed dataframe
-
-# Load the preprocessed data
+# Load preprocessed dataframe (must be in same folder as this script)
 df = pd.read_csv('pivoted.csv', parse_dates=[
     'Submission Submitted At (Assignment Submissions1)_boy',
     'Submission Submitted At (Assignment Submissions1)_moy',
@@ -17,6 +14,8 @@ df = pd.read_csv('pivoted.csv', parse_dates=[
 states = ['All'] + sorted(df['State Name (District School Students1)'].dropna().unique())
 districts = ['All'] + sorted(df['District Name (District School Students1)'].dropna().unique())
 grades = ['All'] + sorted(df['grade_num'].dropna().unique())
+
+st.title("Benchmark Growth Dashboard")
 
 st.sidebar.header("Filter")
 selected_state = st.sidebar.selectbox("State", options=states)
@@ -30,7 +29,41 @@ if selected_district != 'All':
     filtered = filtered[filtered['District Name (District School Students1)'] == selected_district]
 if selected_grade != 'All':
     filtered = filtered[filtered['grade_num'] == float(selected_grade)]
-    
+
+if filtered.empty:
+    st.warning("No data available for this selection.")
+    st.stop()
+
+# Mean SpeakAverage Trend
+st.markdown("### Mean SpeakAverage Trend")
+fig, ax = plt.subplots()
+ax.plot(['BOY', 'MOY', 'EOY'],
+        [
+            filtered["SpeakAverage_boy"].mean(),
+            filtered["SpeakAverage_moy"].mean(),
+            filtered["SpeakAverage_eoy"].mean()
+        ],
+        marker='o'
+)
+ax.set_ylabel("Mean SpeakAverage")
+ax.set_xlabel("Benchmark")
+st.pyplot(fig)
+
+# Mean WriteAverage Trend
+st.markdown("### Mean WriteAverage Trend")
+fig, ax = plt.subplots()
+ax.plot(['BOY', 'MOY', 'EOY'],
+        [
+            filtered["WriteAverage_boy"].mean(),
+            filtered["WriteAverage_moy"].mean(),
+            filtered["WriteAverage_eoy"].mean()
+        ],
+        marker='o'
+)
+ax.set_ylabel("Mean WriteAverage")
+ax.set_xlabel("Benchmark")
+st.pyplot(fig)
+
 st.markdown("### Days Between Benchmarks - Summary")
 for col in ['days_boy_moy', 'days_moy_eoy', 'days_boy_eoy']:
     days = filtered[col].dropna()
@@ -40,8 +73,6 @@ for col in ['days_boy_moy', 'days_moy_eoy', 'days_boy_eoy']:
         f"SD = {days.std():.1f} days, "
         f"N = {days.count()}"
     )
-
-st.title("Benchmark Growth Dashboard")
 
 st.markdown(f"### Students: {len(filtered)}")
 
@@ -53,18 +84,16 @@ growth_cols = [
 ]
 st.dataframe(filtered[growth_cols].describe().T[['mean', 'std', 'min', 'max', 'count']])
 
-# Example: Mean growth by grade
+# Mean growth by grade
 st.markdown("#### Mean Growth by Grade")
 st.dataframe(
     filtered.groupby('grade_num')[growth_cols].mean().reset_index()
 )
 
-# Plot example: Histogram of days between BOY-MOY
+# Histogram of days between BOY-MOY
 st.markdown("#### Days Between Benchmarks (BOY-MOY)")
 st.bar_chart(filtered['days_boy_moy'].dropna())
 
-# Drill down to student table
+# Student-level Data
 st.markdown("#### Student-level Data (first 100 rows)")
 st.dataframe(filtered.head(100))
-
-# Optionally: Add more visualizations!
