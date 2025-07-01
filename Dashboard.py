@@ -1,27 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Jul  1 01:00:03 2025
-
-@author: faust
-"""
-
-###############################################################################
-#
-#                           Dashboard
-#
-###############################################################################
-
-import streamlit as st
-import numpy as np
-import pandas as pd
-import os
-import seaborn as sns
-import matplotlib.pyplot as plt
-
-
-os.chdir("C:/Users/faust/Documents/2025/ASC/Judson Flashlight/Dashboard")
-
-
 #Load preprocessed dataframe
 
 # Load the preprocessed data
