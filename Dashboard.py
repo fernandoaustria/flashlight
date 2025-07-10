@@ -155,6 +155,3 @@ st.dataframe(
     filtered.groupby('grade_num')[growth_cols].mean().reset_index()
 )
 
-# Student-level Data
-st.markdown("#### Student-level Data (first 100 rows)")
-st.dataframe(filtered.head(100))
