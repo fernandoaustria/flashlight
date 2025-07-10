@@ -12,12 +12,16 @@ df = pd.read_csv('pivoted.csv', parse_dates=[
 
 states = ['All'] + sorted(df['State Name (District School Students1)'].dropna().unique())
 districts = ['All'] + sorted(df['District Name (District School Students1)'].dropna().unique())
+schools = ['All'] + sorted(df['School Name (District School Students1)'].dropna().unique())
+grade_bands = ['All'] + sorted(df['grade_band'].dropna().astype(str).unique())
 grades = ['All'] + sorted(df['grade_num'].dropna().unique())
 
 st.title("Benchmark Growth Dashboard")
 st.sidebar.header("Filter")
 selected_state = st.sidebar.selectbox("State", options=states)
 selected_district = st.sidebar.selectbox("District", options=districts)
+selected_school = st.sidebar.selectbox("School", options=schools)
+selected_grade_band = st.sidebar.selectbox("Grade Band", options=grade_bands)
 selected_grade = st.sidebar.selectbox("Grade", options=grades)
 
 filtered = df.copy()
@@ -25,12 +29,43 @@ if selected_state != 'All':
     filtered = filtered[filtered['State Name (District School Students1)'] == selected_state]
 if selected_district != 'All':
     filtered = filtered[filtered['District Name (District School Students1)'] == selected_district]
+if selected_school != 'All':
+    filtered = filtered[filtered['School Name (District School Students1)'] == selected_school]
+if selected_grade_band != 'All':
+    filtered = filtered[filtered['grade_band'].astype(str) == selected_grade_band]
 if selected_grade != 'All':
     filtered = filtered[filtered['grade_num'] == float(selected_grade)]
 
 if filtered.empty:
     st.warning("No data available for this selection.")
     st.stop()
+
+#All1s tables
+
+# All1s Table
+def all1s_summary(df, benchmark='boy', group_col='School Name (District School Students1)'):
+    col = f'All1s_{benchmark}'
+    group = df[[group_col, col]].copy()
+    group[col] = group[col].fillna('')
+    summary = (
+        group.groupby(group_col)
+        .agg(
+            N=(col, 'size'),
+            Non_LA_All1s=(col, lambda x: (x != '').sum()),
+        )
+        .reset_index()
+    )
+    summary['%'] = (summary['Non_LA_All1s'] / summary['N'] * 100).round(1).astype(str) + '%'
+    codes = ['TI', 'SS', 'OT', 'NT']
+    for code in codes:
+        summary[code] = group.groupby(group_col)[col].apply(lambda x: x.str.count(rf'\b{code}\b').sum()).values
+    return summary
+
+st.markdown("### All1s Tables")
+for benchmark in ['boy', 'moy', 'eoy']:
+    st.markdown(f"#### {benchmark.upper()} All1s by School")
+    st.dataframe(all1s_summary(filtered, benchmark=benchmark, group_col='School Name (District School Students1)'))
+
 
 # Interactive Trend Plot
 score_option = st.selectbox(
