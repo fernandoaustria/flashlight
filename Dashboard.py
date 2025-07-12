@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
+import re
 
 df = pd.read_csv('pivoted.csv', parse_dates=[
     'Submission Submitted At (Assignment Submissions1)_boy',
@@ -43,38 +44,53 @@ if filtered.empty:
 #All1s tables
 
 # All1s Table
-def all1s_summary(df, benchmark='boy', group_col='School Name (District School Students1)'):
+def parse_flags(flag):
+    if pd.isna(flag):
+        return []
+    # Lowercase, replace commas/newlines with space, split on whitespace
+    return [x.strip().upper() for x in re.split(r'[,;\s]+', str(flag)) if x.strip()]
+
+def count_non_la(flag):
+    codes = parse_flags(flag)
+    return any(code != 'LA' for code in codes if code)  # True if any flag is NOT LA
+
+def count_code(flag, code):
+    codes = parse_flags(flag)
+    return codes.count(code)
+    
+def all1s_summary_v2(df, benchmark='boy', group_col='School Name (District School Students1)'):
     col = f'All1s_{benchmark}'
     group = df[[group_col, col]].copy()
     group[col] = group[col].fillna('')
 
-    def is_non_la(flag):
-        if not flag or pd.isna(flag):
-            return False
-        codes = [c.strip() for c in str(flag).replace(',', ' ').split()]
-        # Only count as Non-LA if at least one code is NOT AL
-        return any(code and not code.startswith("AL") for code in codes)
-
-    summary = (
-        group.groupby(group_col)
-        .agg(
-            N=(col, 'size'),
-            Non_LA_All1s=(col, lambda x: sum(is_non_la(flag) for flag in x)),
-        )
-        .reset_index()
-    )
+    summary = group.groupby(group_col).agg(
+        N=(col, 'size'),
+        Non_LA_All1s=(col, lambda x: x.apply(count_non_la).sum()),
+        TI=(col, lambda x: x.apply(lambda v: count_code(v, 'TI')).sum()),
+        SS=(col, lambda x: x.apply(lambda v: count_code(v, 'SS')).sum()),
+        OT=(col, lambda x: x.apply(lambda v: count_code(v, 'OT')).sum()),
+        NT=(col, lambda x: x.apply(lambda v: count_code(v, 'NT')).sum()),
+        LA=(col, lambda x: x.apply(lambda v: count_code(v, 'LA')).sum())
+    ).reset_index()
     summary['%'] = (summary['Non_LA_All1s'] / summary['N'] * 100).round(1).astype(str) + '%'
-    codes = ['TI', 'SS', 'OT', 'NT']
-    for code in codes:
-        summary[code] = group.groupby(group_col)[col].apply(lambda x: x.str.count(rf'\b{code}\b').sum()).values
     return summary
 
 #Display tables
 st.markdown("### All1s Flags Summary by School")
 for bench in ['boy', 'moy', 'eoy']:
     st.markdown(f"#### {bench.upper()} All1s by School")
-    st.dataframe(all1s_summary(filtered, benchmark=bench, group_col='School Name (District School Students1)'))
+    table = all1s_summary_v2(filtered, benchmark=bench, group_col='School Name (District School Students1)')
+    st.dataframe(table)
 
+#Download file
+
+csv = table.to_csv(index=False)
+    st.download_button(
+        label=f"Download {bench.upper()} All1s Summary (CSV)",
+        data=csv,
+        file_name=f"{bench}_all1s_summary.csv",
+        mime="text/csv"
+    )
 
 # Interactive Trend Plot
 score_option = st.selectbox(
