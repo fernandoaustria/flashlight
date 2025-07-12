@@ -69,6 +69,13 @@ def all1s_summary(df, benchmark='boy', group_col='School Name (District School S
         summary[code] = group.groupby(group_col)[col].apply(lambda x: x.str.count(rf'\b{code}\b').sum()).values
     return summary
 
+#Display tables
+st.markdown("### All1s Flags Summary by School")
+for bench in ['boy', 'moy', 'eoy']:
+    st.markdown(f"#### {bench.upper()} All1s by School")
+    st.dataframe(all1s_summary(filtered, benchmark=bench, group_col='School Name (District School Students1)'))
+
+
 # Interactive Trend Plot
 score_option = st.selectbox(
     "Select Score for Trend",
