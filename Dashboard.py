@@ -76,7 +76,13 @@ def all1s_summary_v2(df, benchmark='boy', group_col='School Name (District Schoo
         NT=(col, lambda x: x.apply(lambda v: count_code(v, 'NT')).sum()),
         LA=(col, lambda x: x.apply(lambda v: count_code(v, 'LA')).sum())
     ).reset_index()
+    # Create the percentage column
     summary['%'] = (summary['Non_LA_All1s'] / summary['N'] * 100).round(1).astype(str) + '%'
+    # Move '%' column to be right after 'Non_LA_All1s'
+    cols = list(summary.columns)
+    percent_col = cols.pop(cols.index('%'))
+    cols.insert(cols.index('Non_LA_All1s') + 1, percent_col)
+    summary = summary[cols]
     return summary
 
 #Display tables
