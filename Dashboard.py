@@ -190,6 +190,11 @@ for col in ['days_boy_moy', 'days_moy_eoy', 'days_boy_eoy']:
 st.markdown(f"### Students: {len(filtered)}")
 
 # Growth stats
+growth_cols = [
+    'SpeakAverage_growth_BOY_MOY', 'SpeakAverage_growth_MOY_EOY', 'SpeakAverage_growth_BOY_EOY',
+    'WriteAverage_growth_BOY_MOY', 'WriteAverage_growth_MOY_EOY', 'WriteAverage_growth_BOY_EOY'
+]
+
 st.markdown("#### Growth Statistics")
 stats = filtered[growth_cols].describe().T[['mean', 'std', 'min', 'max', 'count']]
 stats[['mean', 'std', 'min', 'max']] = stats[['mean', 'std', 'min', 'max']].round(1)
