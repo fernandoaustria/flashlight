@@ -111,6 +111,8 @@ def benchmark_participation_summary(df, group_col='School Name (District School 
 st.markdown("### Student Participation by School")
 summary_table = benchmark_participation_summary(filtered)
 st.dataframe(summary_table)
+csv = summary_table.to_csv(index=False)
+st.download_button("Download Participation Table (CSV)", data=csv, file_name="participation_by_school.csv")
 
 
 # Interactive Trend Plot
@@ -189,15 +191,18 @@ st.markdown(f"### Students: {len(filtered)}")
 
 # Growth stats
 st.markdown("#### Growth Statistics")
-growth_cols = [
-    'SpeakAverage_growth_BOY_MOY', 'SpeakAverage_growth_MOY_EOY', 'SpeakAverage_growth_BOY_EOY',
-    'WriteAverage_growth_BOY_MOY', 'WriteAverage_growth_MOY_EOY', 'WriteAverage_growth_BOY_EOY'
-]
-st.dataframe(filtered[growth_cols].describe().T[['mean', 'std', 'min', 'max', 'count']])
+stats = filtered[growth_cols].describe().T[['mean', 'std', 'min', 'max', 'count']]
+stats[['mean', 'std', 'min', 'max']] = stats[['mean', 'std', 'min', 'max']].round(1)
+st.dataframe(stats)
 
-# Growth by grade
+# Growth by grade (rounded only)
 st.markdown("#### Mean Growth by Grade")
-st.dataframe(
-    filtered.groupby('grade_num')[growth_cols].mean().reset_index()
-)
+by_grade = filtered.groupby('grade_num')[growth_cols].mean().reset_index()
+by_grade[growth_cols] = by_grade[growth_cols].round(1)
+st.dataframe(by_grade)
 
+# Growth by grade band
+st.markdown("#### Mean Growth by Grade Band")
+by_band = filtered.groupby('grade_band')[growth_cols].mean().reset_index()
+by_band[growth_cols] = by_band[growth_cols].round(1)
+st.dataframe(by_band)
