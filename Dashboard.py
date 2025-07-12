@@ -108,8 +108,8 @@ def benchmark_participation_summary(df, group_col='School Name (District School 
     return result
 
 # Example: By School
-summary_table = benchmark_participation_summary(filtered, group_col='School Name (District School Students1)')
 st.markdown("### Student Participation by School")
+summary_table = benchmark_participation_summary(filtered)
 st.dataframe(summary_table)
 
 
