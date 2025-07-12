@@ -93,6 +93,24 @@ for bench in ['boy', 'moy', 'eoy']:
         mime="text/csv"
     )
 
+#Participation in Benchmark
+
+def benchmark_participation_summary(df, group_col='School Name (District School Students1)'):
+    result = df.groupby(group_col).agg(
+        N=('Student Number (District School Students1)', 'count'),
+        BOY=('SpeakAverage_boy', lambda x: x.notna().sum()),
+        MOY=('SpeakAverage_moy', lambda x: x.notna().sum()),
+        EOY=('SpeakAverage_eoy', lambda x: x.notna().sum())
+    ).reset_index()
+    result['% BOY'] = (result['BOY'] / result['N'] * 100).round(1).astype(str) + '%'
+    result['% MOY'] = (result['MOY'] / result['N'] * 100).round(1).astype(str) + '%'
+    result['% EOY'] = (result['EOY'] / result['N'] * 100).round(1).astype(str) + '%'
+    return result
+
+# Example: By School
+summary_table = benchmark_participation_summary(filtered, group_col='School Name (District School Students1)')
+st.markdown("### Student Participation by School")
+st.dataframe(summary_table)
 
 
 # Interactive Trend Plot
