@@ -81,16 +81,15 @@ for bench in ['boy', 'moy', 'eoy']:
     st.markdown(f"#### {bench.upper()} All1s by School")
     table = all1s_summary_v2(filtered, benchmark=bench, group_col='School Name (District School Students1)')
     st.dataframe(table)
-
-#Download file
-
-csv = table.to_csv(index=False)
+    csv = table.to_csv(index=False)
     st.download_button(
         label=f"Download {bench.upper()} All1s Summary (CSV)",
         data=csv,
         file_name=f"{bench}_all1s_summary.csv",
         mime="text/csv"
     )
+
+
 
 # Interactive Trend Plot
 score_option = st.selectbox(
