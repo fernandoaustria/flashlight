@@ -47,11 +47,19 @@ def all1s_summary(df, benchmark='boy', group_col='School Name (District School S
     col = f'All1s_{benchmark}'
     group = df[[group_col, col]].copy()
     group[col] = group[col].fillna('')
+
+    def is_non_la(flag):
+        if not flag or pd.isna(flag):
+            return False
+        codes = [c.strip() for c in str(flag).replace(',', ' ').split()]
+        # Only count as Non-LA if at least one code is NOT AL
+        return any(code and not code.startswith("AL") for code in codes)
+
     summary = (
         group.groupby(group_col)
         .agg(
             N=(col, 'size'),
-            Non_LA_All1s=(col, lambda x: (x != '').sum()),
+            Non_LA_All1s=(col, lambda x: sum(is_non_la(flag) for flag in x)),
         )
         .reset_index()
     )
@@ -60,12 +68,6 @@ def all1s_summary(df, benchmark='boy', group_col='School Name (District School S
     for code in codes:
         summary[code] = group.groupby(group_col)[col].apply(lambda x: x.str.count(rf'\b{code}\b').sum()).values
     return summary
-
-st.markdown("### All1s Tables")
-for benchmark in ['boy', 'moy', 'eoy']:
-    st.markdown(f"#### {benchmark.upper()} All1s by School")
-    st.dataframe(all1s_summary(filtered, benchmark=benchmark, group_col='School Name (District School Students1)'))
-
 
 # Interactive Trend Plot
 score_option = st.selectbox(
