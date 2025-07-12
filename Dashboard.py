@@ -5,11 +5,15 @@ import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import re
 
-df = pd.read_csv('pivoted.csv', parse_dates=[
-    'Submission Submitted At (Assignment Submissions1)_boy',
-    'Submission Submitted At (Assignment Submissions1)_moy',
-    'Submission Submitted At (Assignment Submissions1)_eoy'
-])
+df = pd.read_csv(
+    'pivoted.csv',
+    parse_dates=[
+        'Submission Submitted At (Assignment Submissions1)_boy',
+        'Submission Submitted At (Assignment Submissions1)_moy',
+        'Submission Submitted At (Assignment Submissions1)_eoy'
+    ],
+    low_memory=False
+)
 
 states = ['All'] + sorted(df['State Name (District School Students1)'].dropna().unique())
 districts = ['All'] + sorted(df['District Name (District School Students1)'].dropna().unique())
