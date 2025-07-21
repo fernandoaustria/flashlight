@@ -128,10 +128,14 @@ score_option = st.selectbox(
     index=0
 )
 
+for bench in ['boy', 'moy', 'eoy']:
+    col = f'All1s_{bench}'
+    filtered[f'no_flag_{bench}'] = filtered[col].isna() | (filtered[col].astype(str).str.strip() == '')
+
 means = [
-    filtered.get(f"{score_option}_boy", pd.Series(dtype='float')).mean(),
-    filtered.get(f"{score_option}_moy", pd.Series(dtype='float')).mean(),
-    filtered.get(f"{score_option}_eoy", pd.Series(dtype='float')).mean()
+    filtered.loc[filtered['no_flag_boy'], f"{score_option}_boy"].mean(),
+    filtered.loc[filtered['no_flag_moy'], f"{score_option}_moy"].mean(),
+    filtered.loc[filtered['no_flag_eoy'], f"{score_option}_eoy"].mean()
 ]
 benchmarks = ["BOY", "MOY", "EOY"]
 
@@ -150,14 +154,19 @@ fig.update_layout(
 st.plotly_chart(fig, use_container_width=True)
 
 # By Grade
-means_by_grade = (
-    filtered.groupby('grade_num')[
-        [f"{score_option}_boy", f"{score_option}_moy", f"{score_option}_eoy"]
-    ]
-    .mean()
-    .reset_index()
-)
+means_boy = filtered.loc[filtered['no_flag_boy']].groupby('grade_num')[f"{score_option}_boy"].mean()
+means_moy = filtered.loc[filtered['no_flag_moy']].groupby('grade_num')[f"{score_option}_moy"].mean()
+means_eoy = filtered.loc[filtered['no_flag_eoy']].groupby('grade_num')[f"{score_option}_eoy"].mean()
 
+means_by_grade = pd.DataFrame({
+    'grade_num': sorted(set(means_boy.index) | set(means_moy.index) | set(means_eoy.index)),
+})
+means_by_grade = means_by_grade.set_index('grade_num')
+means_by_grade[f"{score_option}_boy"] = means_boy
+means_by_grade[f"{score_option}_moy"] = means_moy
+means_by_grade[f"{score_option}_eoy"] = means_eoy
+means_by_grade = means_by_grade.reset_index()
+    
 means_by_grade_melted = means_by_grade.melt(
     id_vars='grade_num',
     value_vars=[f"{score_option}_boy", f"{score_option}_moy", f"{score_option}_eoy"],
@@ -184,8 +193,10 @@ st.plotly_chart(fig, use_container_width=True)
 
 # Days between benchmarks summary
 st.markdown("### Days Between Benchmarks - Summary")
-for col in ['days_boy_moy', 'days_moy_eoy', 'days_boy_eoy']:
-    days = filtered[col].dropna()
+for (a, b) in [('boy', 'moy'), ('moy', 'eoy'), ('boy', 'eoy')]:
+    mask = filtered[f'no_flag_{a}'] & filtered[f'no_flag_{b}']
+    col = f'days_{a}_{b}'
+    days = filtered.loc[mask, col].dropna()
     st.write(
         f"**{col.replace('_', ' ').upper()}:** "
         f"Mean = {days.mean():.1f} days, "
@@ -202,18 +213,41 @@ growth_cols = [
 ]
 
 st.markdown("#### Growth Statistics")
-stats = filtered[growth_cols].describe().T[['mean', 'std', 'min', 'max', 'count']]
-stats[['mean', 'std', 'min', 'max']] = stats[['mean', 'std', 'min', 'max']].round(1)
+growth_stats = {}
+for skill in ['SpeakAverage', 'WriteAverage']:
+    for pair in [('BOY', 'MOY'), ('MOY', 'EOY'), ('BOY', 'EOY')]:
+        a, b = pair[0].lower(), pair[1].lower()
+        col = f'{skill}_growth_{pair[0]}_{pair[1]}'
+        mask = filtered[f'no_flag_{a}'] & filtered[f'no_flag_{b}']
+        vals = filtered.loc[mask, col].dropna()
+        growth_stats[col] = [vals.mean(), vals.std(), vals.min(), vals.max(), vals.count()]
+stats = pd.DataFrame(
+    growth_stats, index=['mean', 'std', 'min', 'max', 'count']
+).T.round(2)
 st.dataframe(stats)
 
-# Growth by grade (rounded only)
+# Growth by grade (filtered for flags)
 st.markdown("#### Mean Growth by Grade")
-by_grade = filtered.groupby('grade_num')[growth_cols].mean().reset_index()
-by_grade[growth_cols] = by_grade[growth_cols].round(1)
+by_grade = pd.DataFrame({'grade_num': sorted(filtered['grade_num'].dropna().unique())}).set_index('grade_num')
+for skill in ['SpeakAverage', 'WriteAverage']:
+    for pair in [('BOY', 'MOY'), ('MOY', 'EOY'), ('BOY', 'EOY')]:
+        a, b = pair[0].lower(), pair[1].lower()
+        col = f'{skill}_growth_{pair[0]}_{pair[1]}'
+        mask = filtered[f'no_flag_{a}'] & filtered[f'no_flag_{b}']
+        means = filtered.loc[mask].groupby('grade_num')[col].mean()
+        by_grade[col] = means
+by_grade = by_grade.round(2).reset_index()
 st.dataframe(by_grade)
 
-# Growth by grade band
+# Growth by grade band (filtered for flags)
 st.markdown("#### Mean Growth by Grade Band")
-by_band = filtered.groupby('grade_band')[growth_cols].mean().reset_index()
-by_band[growth_cols] = by_band[growth_cols].round(1)
+by_band = pd.DataFrame({'grade_band': sorted(filtered['grade_band'].dropna().astype(str).unique())}).set_index('grade_band')
+for skill in ['SpeakAverage', 'WriteAverage']:
+    for pair in [('BOY', 'MOY'), ('MOY', 'EOY'), ('BOY', 'EOY')]:
+        a, b = pair[0].lower(), pair[1].lower()
+        col = f'{skill}_growth_{pair[0]}_{pair[1]}'
+        mask = filtered[f'no_flag_{a}'] & filtered[f'no_flag_{b}']
+        means = filtered.loc[mask].groupby('grade_band')[col].mean()
+        by_band[col] = means
+by_band = by_band.round(2).reset_index()
 st.dataframe(by_band)
