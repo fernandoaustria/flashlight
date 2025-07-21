@@ -204,7 +204,8 @@ for (a, b) in [('boy', 'moy'), ('moy', 'eoy'), ('boy', 'eoy')]:
         f"N = {days.count()}"
     )
 
-st.markdown(f"### Students: {len(filtered)}")
+n_no_flag_all = filtered['no_flag_boy'] & filtered['no_flag_moy'] & filtered['no_flag_eoy']
+st.markdown(f"### Students with no flags in any window: {n_no_flag_all.sum()}")
 
 # Growth stats
 growth_cols = [
