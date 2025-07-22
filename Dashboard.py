@@ -2,6 +2,7 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 import plotly.graph_objects as go
 import re
 
@@ -252,3 +253,69 @@ for skill in ['SpeakAverage', 'WriteAverage']:
         by_band[col] = means
 by_band = by_band.round(2).reset_index()
 st.dataframe(by_band)
+
+##NLP features selector
+
+# NLP features selector
+st.sidebar.header("NLP / Feature Explorer")
+
+exclude_cols = [
+    'Student Number (District School Students1)',
+    'District Name (District School Students1)',
+    'State Name (District School Students1)',
+    'School Name (District School Students1)',
+    'grade_band',
+    'grade_num'
+    # Add others as needed
+]
+
+numeric_cols = [
+    col for col in filtered.select_dtypes(include=[np.number]).columns
+    if col not in exclude_cols
+]
+
+if len(numeric_cols) == 0:
+    st.warning("No numeric features found for selection.")
+else:
+    selected_feature = st.sidebar.selectbox(
+        "Select feature to visualize", 
+        sorted(numeric_cols)
+    )
+
+    flag_filter = st.sidebar.checkbox("Only students with NO All1s flag in any window", value=False)
+    if flag_filter:
+        filtered_plot = filtered.loc[n_no_flag_all]
+    else:
+        filtered_plot = filtered
+
+    st.markdown(f"### Feature: {selected_feature}")
+    feature_data = filtered_plot[selected_feature].dropna()
+    if feature_data.empty:
+        st.warning("No data to display for the selected feature and filter.")
+    else:
+        st.write(feature_data.describe())
+
+        st.markdown("#### Histogram")
+        fig1 = plt.figure()
+        plt.hist(feature_data, bins='auto')
+        plt.xlabel(selected_feature)
+        plt.ylabel("Frequency")
+        st.pyplot(fig1)
+        plt.close(fig1)
+
+        # Optional: Feature by Grade Boxplot
+        if 'grade_num' in filtered_plot.columns:
+            st.markdown(f"#### {selected_feature} by Grade")
+            fig2 = plt.figure(figsize=(8, 4))
+            sns.boxplot(x=filtered_plot['grade_num'], y=filtered_plot[selected_feature])
+            plt.xlabel("Grade")
+            plt.ylabel(selected_feature)
+            st.pyplot(fig2)
+            plt.close(fig2)
+        st.markdown(f"#### {selected_feature} by Grade")
+        fig2 = plt.figure(figsize=(8, 4))
+        sns.boxplot(x=filtered_plot['grade_num'], y=filtered_plot[selected_feature])
+        plt.xlabel("Grade")
+        plt.ylabel(selected_feature)
+        st.pyplot(fig2)
+        plt.close(fig2)
