@@ -326,3 +326,19 @@ if selected_features:
             ax.tick_params(axis='x', rotation=45)
         st.pyplot(fig)
         plt.close(fig)
+if selected_features:
+    # ... your plots here ...
+    st.markdown("### Summary Table for Selected Features")
+    summary_df = filtered_plot[selected_features].describe().T
+    st.dataframe(summary_df)
+
+    st.markdown("### Data Preview for Selected Features")
+    st.dataframe(filtered_plot[selected_features].head(30))
+
+    csv = filtered_plot[selected_features].to_csv(index=False)
+    st.download_button(
+        label="Download selected features (CSV)",
+        data=csv,
+        file_name="selected_nlp_features.csv",
+        mime="text/csv"
+    )
