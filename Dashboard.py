@@ -338,6 +338,7 @@ if 'grade_band' in filtered_plot.columns and bands_in_data:
     plt.close(fig)
 #Summary table for selected features
 if selected_features:
+    # ... your plots here ...
     st.markdown("### Summary Table for Selected Features")
     summary_df = filtered_plot[selected_features].describe().T
     st.dataframe(summary_df)
@@ -353,9 +354,8 @@ if selected_features:
         mime="text/csv"
     )
 
- # Correlation Table & Heatmap
-if selected_features:
-       outcome_cols = [
+    # Correlation Table & Heatmap
+    outcome_cols = [
         'SpeakAverage_boy', 'SpeakAverage_moy', 'SpeakAverage_eoy',
         'WriteAverage_boy', 'WriteAverage_moy', 'WriteAverage_eoy'
     ]
