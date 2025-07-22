@@ -309,13 +309,16 @@ if selected_features:
         plt.close(fig)
 
    # Side-by-side Boxplots by grade_band
-    grade_band_order = ['0.5', '1-2', '3-5', '6-8', '9-12']
-    if 'grade_band' in filtered_plot.columns:
-        filtered_plot['grade_band'] = pd.Categorical(
-            filtered_plot['grade_band'],
-            categories=grade_band_order,
-            ordered=True
-        )
+    # --- Dynamic Grade Band Order ---
+grade_band_order_full = ['0_0.5', '1_2', '3_5', '6_8', '9_12']
+bands_in_data = [band for band in grade_band_order_full if band in filtered_plot['grade_band'].unique()]
+
+if 'grade_band' in filtered_plot.columns and bands_in_data:
+    filtered_plot['grade_band'] = pd.Categorical(
+        filtered_plot['grade_band'],
+        categories=bands_in_data,
+        ordered=True
+    )
     st.markdown("### Boxplots by Grade Band for Selected Features")
     fig, axs = plt.subplots(1, n_features, figsize=(5 * n_features, 4))
     if n_features == 1:
@@ -324,7 +327,7 @@ if selected_features:
         sns.boxplot(
             x=filtered_plot['grade_band'],
             y=filtered_plot[selected_feature],
-            order=grade_band_order,
+            order=bands_in_data,
             ax=ax
         )
         ax.set_xlabel("Grade Band")
