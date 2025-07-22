@@ -255,10 +255,9 @@ st.dataframe(by_band)
 # ---- NLP Feature Multi-Selector ----
 st.sidebar.header("NLP / Feature Explorer")
 
-# Define your NLP feature columns (customize prefixes if needed)
 nlp_prefixes = [
     "n_tokens", "avg_token_sent", "flesch_reading_ease", "fk_grade", "grammar_errors",
-    "n_sents", "pct_noun", "ttr"
+    "n_sents", "pct_noun", "pct_verb", "ttr"
 ]
 nlp_cols = [col for col in filtered.columns if any(col.startswith(prefix) for prefix in nlp_prefixes)]
 
@@ -275,41 +274,55 @@ if flag_filter:
 else:
     filtered_plot = filtered
 
-for selected_feature in selected_features:
-    feature_data = filtered_plot[selected_feature].dropna()
-    if feature_data.empty:
-        st.warning(f"No data to display for {selected_feature} and filter.")
-        continue
+if selected_features:
+    # Side-by-side Histograms
+    st.markdown("### Histograms for Selected Features")
+    n_features = len(selected_features)
+    fig, axs = plt.subplots(1, n_features, figsize=(5 * n_features, 4))
+    if n_features == 1:
+        axs = [axs]
+    for ax, selected_feature in zip(axs, selected_features):
+        feature_data = filtered_plot[selected_feature].dropna()
+        ax.hist(feature_data, bins='auto')
+        ax.set_xlabel(selected_feature)
+        ax.set_ylabel("Frequency")
+        ax.set_title(selected_feature)
+    st.pyplot(fig)
+    plt.close(fig)
 
-    st.markdown(f"### Feature: {selected_feature}")
-    st.write(feature_data.describe())
-
-    # Histogram
-    st.markdown("#### Histogram")
-    fig1 = plt.figure()
-    plt.hist(feature_data, bins='auto')
-    plt.xlabel(selected_feature)
-    plt.ylabel("Frequency")
-    st.pyplot(fig1)
-    plt.close(fig1)
-
-    # Boxplot by grade_num
+    # Side-by-side Boxplots by grade_num
     if 'grade_num' in filtered_plot.columns:
-        st.markdown(f"#### {selected_feature} by Grade")
-        fig2 = plt.figure(figsize=(8, 4))
-        sns.boxplot(x=filtered_plot['grade_num'], y=filtered_plot[selected_feature])
-        plt.xlabel("Grade")
-        plt.ylabel(selected_feature)
-        st.pyplot(fig2)
-        plt.close(fig2)
+        st.markdown("### Boxplots by Grade for Selected Features")
+        fig, axs = plt.subplots(1, n_features, figsize=(5 * n_features, 4))
+        if n_features == 1:
+            axs = [axs]
+        for ax, selected_feature in zip(axs, selected_features):
+            sns.boxplot(
+                x=filtered_plot['grade_num'],
+                y=filtered_plot[selected_feature],
+                ax=ax
+            )
+            ax.set_xlabel("Grade")
+            ax.set_ylabel(selected_feature)
+            ax.set_title(selected_feature)
+        st.pyplot(fig)
+        plt.close(fig)
 
-    # Boxplot by grade_band
+    # Side-by-side Boxplots by grade_band
     if 'grade_band' in filtered_plot.columns:
-        st.markdown(f"#### {selected_feature} by Grade Band")
-        fig3 = plt.figure(figsize=(8, 4))
-        sns.boxplot(x=filtered_plot['grade_band'], y=filtered_plot[selected_feature])
-        plt.xlabel("Grade Band")
-        plt.ylabel(selected_feature)
-        plt.xticks(rotation=45)
-        st.pyplot(fig3)
-        plt.close(fig3)
+        st.markdown("### Boxplots by Grade Band for Selected Features")
+        fig, axs = plt.subplots(1, n_features, figsize=(5 * n_features, 4))
+        if n_features == 1:
+            axs = [axs]
+        for ax, selected_feature in zip(axs, selected_features):
+            sns.boxplot(
+                x=filtered_plot['grade_band'],
+                y=filtered_plot[selected_feature],
+                ax=ax
+            )
+            ax.set_xlabel("Grade Band")
+            ax.set_ylabel(selected_feature)
+            ax.set_title(selected_feature)
+            ax.tick_params(axis='x', rotation=45)
+        st.pyplot(fig)
+        plt.close(fig)
