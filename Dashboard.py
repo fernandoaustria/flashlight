@@ -308,24 +308,31 @@ if selected_features:
         st.pyplot(fig)
         plt.close(fig)
 
-    # Side-by-side Boxplots by grade_band
-    if 'grade_band' in filtered_plot.columns:
-        st.markdown("### Boxplots by Grade Band for Selected Features")
-        fig, axs = plt.subplots(1, n_features, figsize=(5 * n_features, 4))
-        if n_features == 1:
-            axs = [axs]
-        for ax, selected_feature in zip(axs, selected_features):
-            sns.boxplot(
-                x=filtered_plot['grade_band'],
-                y=filtered_plot[selected_feature],
-                ax=ax
-            )
-            ax.set_xlabel("Grade Band")
-            ax.set_ylabel(selected_feature)
-            ax.set_title(selected_feature)
-            ax.tick_params(axis='x', rotation=45)
-        st.pyplot(fig)
-        plt.close(fig)
+   # Side-by-side Boxplots by grade_band
+grade_band_order = ['0.5', '1-2', '3-5', '6-8', '9-12']
+if 'grade_band' in filtered_plot.columns:
+    filtered_plot['grade_band'] = pd.Categorical(
+        filtered_plot['grade_band'],
+        categories=grade_band_order,
+        ordered=True
+    )
+    st.markdown("### Boxplots by Grade Band for Selected Features")
+    fig, axs = plt.subplots(1, n_features, figsize=(5 * n_features, 4))
+    if n_features == 1:
+        axs = [axs]
+    for ax, selected_feature in zip(axs, selected_features):
+        sns.boxplot(
+            x=filtered_plot['grade_band'],
+            y=filtered_plot[selected_feature],
+            order=grade_band_order,
+            ax=ax
+        )
+        ax.set_xlabel("Grade Band")
+        ax.set_ylabel(selected_feature)
+        ax.set_title(selected_feature)
+        ax.tick_params(axis='x', rotation=45)
+    st.pyplot(fig)
+    plt.close(fig)
 if selected_features:
     # ... your plots here ...
     st.markdown("### Summary Table for Selected Features")
