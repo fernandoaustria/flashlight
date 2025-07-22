@@ -46,8 +46,6 @@ if filtered.empty:
     st.warning("No data available for this selection.")
     st.stop()
 
-#All1s tables
-
 # All1s Table
 def parse_flags(flag):
     if pd.isna(flag):
@@ -101,7 +99,6 @@ for bench in ['boy', 'moy', 'eoy']:
     )
 
 #Participation in Benchmark
-
 def benchmark_participation_summary(df, group_col='School Name (District School Students1)'):
     result = df.groupby(group_col).agg(
         N=('Student Number (District School Students1)', 'count'),
@@ -120,7 +117,6 @@ summary_table = benchmark_participation_summary(filtered)
 st.dataframe(summary_table)
 csv = summary_table.to_csv(index=False)
 st.download_button("Download Participation Table (CSV)", data=csv, file_name="participation_by_school.csv")
-
 
 # Interactive Trend Plot
 score_option = st.selectbox(
@@ -205,6 +201,7 @@ for (a, b) in [('boy', 'moy'), ('moy', 'eoy'), ('boy', 'eoy')]:
         f"N = {days.count()}"
     )
 
+#Create filter mask
 n_no_flag_all = filtered['no_flag_boy'] & filtered['no_flag_moy'] & filtered['no_flag_eoy']
 st.markdown(f"### Students with no flags in any window: {n_no_flag_all.sum()}")
 
@@ -254,53 +251,49 @@ for skill in ['SpeakAverage', 'WriteAverage']:
 by_band = by_band.round(2).reset_index()
 st.dataframe(by_band)
 
-##NLP features selector
-
 # NLP features selector
+# ---- NLP Feature Multi-Selector ----
 st.sidebar.header("NLP / Feature Explorer")
 
-nlp_features = [
-    'n_tokens_boy', 'n_tokens_moy', 'n_tokens_eoy',
-    'avg_token_sent_boy', 'avg_token_sent_moy', 'avg_token_sent_eoy',
-    'flesch_reading_ease_boy', 'flesch_reading_ease_moy', 'flesch_reading_ease_eoy',
-    'grammar_errors_boy', 'grammar_errors_moy', 'grammar_errors_eoy',
-    'fk_grade_boy', 'fk_grade_moy', 'fk_grade_eoy',
-    'n_sents_boy', 'n_sents_moy', 'n_sents_eoy',
-    'pct_noun_boy', 'pct_noun_moy', 'pct_noun_eoy',
-    'ttr_boy', 'ttr_moy', 'ttr_eoy'
+# Define your NLP feature columns (customize prefixes if needed)
+nlp_prefixes = [
+    "n_tokens", "avg_token_sent", "flesch_reading_ease", "fk_grade", "grammar_errors",
+    "n_sents", "pct_noun", "ttr"
 ]
-nlp_features = [col for col in nlp_features if col in filtered.columns]
+nlp_cols = [col for col in filtered.columns if any(col.startswith(prefix) for prefix in nlp_prefixes)]
 
-if len(nlp_features) == 0:
-    st.warning("No NLP features found in the data.")
+selected_features = st.sidebar.multiselect(
+    "Select NLP feature(s) to visualize", 
+    sorted(nlp_cols),
+    default=[nlp_cols[0]] if nlp_cols else []
+)
+
+flag_filter = st.sidebar.checkbox("Only students with NO All1s flag in any window", value=False)
+if flag_filter:
+    n_no_flag_all = filtered['no_flag_boy'] & filtered['no_flag_moy'] & filtered['no_flag_eoy']
+    filtered_plot = filtered.loc[n_no_flag_all]
 else:
-    selected_feature = st.sidebar.selectbox(
-        "Select NLP feature to visualize", 
-        sorted(nlp_features)
-    )
+    filtered_plot = filtered
 
-    flag_filter = st.sidebar.checkbox("Only students with NO All1s flag in any window", value=False)
-    if flag_filter:
-        filtered_plot = filtered.loc[n_no_flag_all]
-    else:
-        filtered_plot = filtered
-
-    st.markdown(f"### NLP Feature: {selected_feature}")
+for selected_feature in selected_features:
     feature_data = filtered_plot[selected_feature].dropna()
     if feature_data.empty:
-        st.warning("No data to display for the selected feature and filter.")
-    else:
-        st.write(feature_data.describe())
+        st.warning(f"No data to display for {selected_feature} and filter.")
+        continue
 
-        st.markdown("#### Histogram")
-        fig1 = plt.figure()
-        plt.hist(feature_data, bins='auto')
-        plt.xlabel(selected_feature)
-        plt.ylabel("Frequency")
-        st.pyplot(fig1)
-        plt.close(fig1)
+    st.markdown(f"### Feature: {selected_feature}")
+    st.write(feature_data.describe())
 
-        # Boxplot by grade_num
+    # Histogram
+    st.markdown("#### Histogram")
+    fig1 = plt.figure()
+    plt.hist(feature_data, bins='auto')
+    plt.xlabel(selected_feature)
+    plt.ylabel("Frequency")
+    st.pyplot(fig1)
+    plt.close(fig1)
+
+    # Boxplot by grade_num
     if 'grade_num' in filtered_plot.columns:
         st.markdown(f"#### {selected_feature} by Grade")
         fig2 = plt.figure(figsize=(8, 4))
