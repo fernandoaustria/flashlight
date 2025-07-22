@@ -300,18 +300,23 @@ else:
         st.pyplot(fig1)
         plt.close(fig1)
 
-        # Boxplot by grade
-        if 'grade_num' in filtered_plot.columns:
-            st.markdown(f"#### {selected_feature} by Grade")
-            fig2 = plt.figure(figsize=(8, 4))
-            sns.boxplot(x=filtered_plot['grade_num'], y=filtered_plot[selected_feature])
-            plt.xlabel("Grade")
-            plt.ylabel(selected_feature)
-            st.pyplot(fig2)
-            plt.close(fig2)
+        # Boxplot by grade_num
+    if 'grade_num' in filtered_plot.columns:
+        st.markdown(f"#### {selected_feature} by Grade")
         fig2 = plt.figure(figsize=(8, 4))
         sns.boxplot(x=filtered_plot['grade_num'], y=filtered_plot[selected_feature])
         plt.xlabel("Grade")
         plt.ylabel(selected_feature)
         st.pyplot(fig2)
         plt.close(fig2)
+
+    # Boxplot by grade_band
+    if 'grade_band' in filtered_plot.columns:
+        st.markdown(f"#### {selected_feature} by Grade Band")
+        fig3 = plt.figure(figsize=(8, 4))
+        sns.boxplot(x=filtered_plot['grade_band'], y=filtered_plot[selected_feature])
+        plt.xlabel("Grade Band")
+        plt.ylabel(selected_feature)
+        plt.xticks(rotation=45)
+        st.pyplot(fig3)
+        plt.close(fig3)
