@@ -336,8 +336,8 @@ if 'grade_band' in filtered_plot.columns and bands_in_data:
         ax.tick_params(axis='x', rotation=45)
     st.pyplot(fig)
     plt.close(fig)
+#Summary table for selected features
 if selected_features:
-    # ... your plots here ...
     st.markdown("### Summary Table for Selected Features")
     summary_df = filtered_plot[selected_features].describe().T
     st.dataframe(summary_df)
@@ -352,9 +352,10 @@ if selected_features:
         file_name="selected_nlp_features.csv",
         mime="text/csv"
     )
+
+ # Correlation Table & Heatmap
 if selected_features:
-    # Correlation Table & Heatmap
-    outcome_cols = [
+       outcome_cols = [
         'SpeakAverage_boy', 'SpeakAverage_moy', 'SpeakAverage_eoy',
         'WriteAverage_boy', 'WriteAverage_moy', 'WriteAverage_eoy'
     ]
@@ -375,3 +376,65 @@ if selected_features:
     plt.ylabel("NLP Features")
     st.pyplot(fig)
     plt.close(fig)
+
+# Growth Trajectories: Line/Violin Plots for NLP Features Across BOY/MOY/EOY
+if selected_features:
+    st.markdown("## Growth Trajectories Across Benchmarks")
+    benchmark_labels = ["boy", "moy", "eoy"]
+    for selected_feature in selected_features:
+        feature_cols = [f"{selected_feature.replace('_boy','')}_{b}" for b in benchmark_labels]
+        feature_cols = [col for col in feature_cols if col in filtered_plot.columns]
+        if len(feature_cols) < 2:
+            st.info(f"Not enough benchmark columns for {selected_feature}.")
+            continue
+        
+        # Prepare data in long format
+        melted = pd.melt(
+            filtered_plot,
+            id_vars=["grade_num", "grade_band"],
+            value_vars=feature_cols,
+            var_name="Benchmark",
+            value_name="FeatureValue"
+        )
+        melted["Benchmark"] = melted["Benchmark"].str.extract(r"_([a-z]+)$")[0].str.upper()
+
+        # Plot lineplot (by grade_num)
+        st.markdown(f"#### {selected_feature}: Mean by Grade and Benchmark")
+        fig, ax = plt.subplots(figsize=(7,4))
+        sns.lineplot(
+            data=melted,
+            x="Benchmark", y="FeatureValue", hue="grade_num", 
+            estimator="mean", ci="sd", marker="o", palette="tab10", ax=ax
+        )
+        ax.set_title(f"{selected_feature}: Mean Trajectory by Grade")
+        ax.legend(title="Grade", bbox_to_anchor=(1.05,1), loc='upper left')
+        st.pyplot(fig)
+        plt.close(fig)
+
+        # Violinplot by grade band
+        st.markdown(f"#### {selected_feature}: Distribution by Grade Band and Benchmark")
+        fig, ax = plt.subplots(figsize=(8,4))
+        sns.violinplot(
+            data=melted,
+            x="Benchmark", y="FeatureValue", hue="grade_band", 
+            split=True, inner="quartile", ax=ax
+        )
+        ax.set_title(f"{selected_feature}: Distribution by Grade Band and Benchmark")
+        ax.legend(title="Grade Band", bbox_to_anchor=(1.05,1), loc='upper left')
+        st.pyplot(fig)
+        plt.close(fig)
+#Delta Histograms: Distributions of Change (e.g., n_tokens_eoy - n_tokens_boy)
+if selected_features:
+    st.markdown("## Change (Delta) Histograms")
+    for selected_feature in selected_features:
+        col_boy = f"{selected_feature.replace('_boy','')}_boy"
+        col_eoy = f"{selected_feature.replace('_boy','')}_eoy"
+        if col_boy in filtered_plot.columns and col_eoy in filtered_plot.columns:
+            delta = filtered_plot[col_eoy] - filtered_plot[col_boy]
+            st.markdown(f"#### Δ {selected_feature.replace('_boy','')}: EOY - BOY")
+            fig, ax = plt.subplots()
+            ax.hist(delta.dropna(), bins=30)
+            ax.set_xlabel(f"Delta {selected_feature.replace('_boy','')} (EOY - BOY)")
+            ax.set_ylabel("Frequency")
+            st.pyplot(fig)
+            plt.close(fig)
