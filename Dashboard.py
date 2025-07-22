@@ -342,3 +342,26 @@ if selected_features:
         file_name="selected_nlp_features.csv",
         mime="text/csv"
     )
+if selected_features:
+    # Correlation Table & Heatmap
+    outcome_cols = [
+        'SpeakAverage_boy', 'SpeakAverage_moy', 'SpeakAverage_eoy',
+        'WriteAverage_boy', 'WriteAverage_moy', 'WriteAverage_eoy'
+    ]
+    cor_cols = selected_features + outcome_cols
+    cor_cols = [col for col in cor_cols if col in filtered_plot.columns and pd.api.types.is_numeric_dtype(filtered_plot[col])]
+    corr_df = filtered_plot[cor_cols].corr()
+
+    st.markdown("### Correlation Table")
+    st.dataframe(corr_df.loc[selected_features, outcome_cols])
+
+    st.markdown("### Correlation Heatmap (NLP features vs Outcomes)")
+    fig, ax = plt.subplots(figsize=(min(1+len(outcome_cols), 10), min(1+len(selected_features), 10)))
+    sns.heatmap(
+        corr_df.loc[selected_features, outcome_cols],
+        annot=True, fmt=".2f", cmap='coolwarm', cbar=True, ax=ax
+    )
+    plt.xlabel("Outcomes")
+    plt.ylabel("NLP Features")
+    st.pyplot(fig)
+    plt.close(fig)
