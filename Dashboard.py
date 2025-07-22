@@ -259,27 +259,24 @@ st.dataframe(by_band)
 # NLP features selector
 st.sidebar.header("NLP / Feature Explorer")
 
-exclude_cols = [
-    'Student Number (District School Students1)',
-    'District Name (District School Students1)',
-    'State Name (District School Students1)',
-    'School Name (District School Students1)',
-    'grade_band',
-    'grade_num'
-    # Add others as needed
+nlp_features = [
+    'n_tokens_boy', 'n_tokens_moy', 'n_tokens_eoy',
+    'avg_token_sent_boy', 'avg_token_sent_moy', 'avg_token_sent_eoy',
+    'flesch_reading_ease_boy', 'flesch_reading_ease_moy', 'flesch_reading_ease_eoy',
+    'grammar_errors_boy', 'grammar_errors_moy', 'grammar_errors_eoy',
+    'fk_grade_boy', 'fk_grade_moy', 'fk_grade_eoy',
+    'n_sents_boy', 'n_sents_moy', 'n_sents_eoy',
+    'pct_noun_boy', 'pct_noun_moy', 'pct_noun_eoy',
+    'ttr_boy', 'ttr_moy', 'ttr_eoy'
 ]
+nlp_features = [col for col in nlp_features if col in filtered.columns]
 
-numeric_cols = [
-    col for col in filtered.select_dtypes(include=[np.number]).columns
-    if col not in exclude_cols
-]
-
-if len(numeric_cols) == 0:
-    st.warning("No numeric features found for selection.")
+if len(nlp_features) == 0:
+    st.warning("No NLP features found in the data.")
 else:
     selected_feature = st.sidebar.selectbox(
-        "Select feature to visualize", 
-        sorted(numeric_cols)
+        "Select NLP feature to visualize", 
+        sorted(nlp_features)
     )
 
     flag_filter = st.sidebar.checkbox("Only students with NO All1s flag in any window", value=False)
@@ -288,7 +285,7 @@ else:
     else:
         filtered_plot = filtered
 
-    st.markdown(f"### Feature: {selected_feature}")
+    st.markdown(f"### NLP Feature: {selected_feature}")
     feature_data = filtered_plot[selected_feature].dropna()
     if feature_data.empty:
         st.warning("No data to display for the selected feature and filter.")
@@ -303,7 +300,7 @@ else:
         st.pyplot(fig1)
         plt.close(fig1)
 
-        # Optional: Feature by Grade Boxplot
+        # Boxplot by grade
         if 'grade_num' in filtered_plot.columns:
             st.markdown(f"#### {selected_feature} by Grade")
             fig2 = plt.figure(figsize=(8, 4))
@@ -312,7 +309,6 @@ else:
             plt.ylabel(selected_feature)
             st.pyplot(fig2)
             plt.close(fig2)
-        st.markdown(f"#### {selected_feature} by Grade")
         fig2 = plt.figure(figsize=(8, 4))
         sns.boxplot(x=filtered_plot['grade_num'], y=filtered_plot[selected_feature])
         plt.xlabel("Grade")
